@@ -149,5 +149,140 @@ par(oldpar)
 #
 ##################################################################################
 
+ubl = aov(UBL~populations, data = dat)
+anova(ubl)
 
 
+lbl = aov(LBL~populations, data = dat)
+anova(lbl)
+
+par(mfrow=c(1,2))
+
+plotNormalHistogram(dat$UBL, prob = FALSE, col="black", border="green",
+                    main = "UBL Values (mm) with Normal Distribution Overlay",
+                    linecol="red", lwd=3 )
+plotNormalHistogram(dat$LBL, prob = FALSE, col="black", border="green",
+                    main = "LBL Values (mm) with Normal Distribution Overlay",
+                    linecol="red", lwd=3 )
+
+#################################################################################
+#
+#
+# now I try to do mixed-effects model analysis to look at variances between populations
+#
+#
+##################################################################################
+
+
+##################################################################################
+populations = as.factor(dat$pop)
+y_new = dat$UBL
+x_new = dat$LBL
+m = glmmTMB(y_new ~ x_new + (1|populations), data=dat)
+
+summary(m)
+
+VarCorr(m)
+VarAmongGroups = attr(VarCorr(m)$cond$populations, "stddev")^2
+VarWithinGroups = attr(VarCorr(m)$cond, "sc")^2
+VarAmongGroups/(VarAmongGroups+VarWithinGroups)*100
+CV2_Among = VarAmongGroups/mean(x)^2
+CV2_Within = VarWithinGroups/mean(x)^2
+CV2_Total = CV2_Among + CV2_Within
+df = data.frame(Mean = mean(x), SD = sd(x),
+                Among = VarAmongGroups/(VarAmongGroups+VarWithinGroups)*100,
+                Within = VarWithinGroups/(VarAmongGroups+VarWithinGroups)*100,
+                CV2_Among, CV2_Within, CV2_Total)
+df = apply(df, 2, round, 2)
+df
+coef(m)
+
+#################################################################################
+#################################################################################
+
+#################################################################################
+#################################################################################
+#
+# I can try to do ANCOVA
+#
+#################################################################################
+#################################################################################
+
+###################################################################################################
+# first populations plot for log values
+
+ggplot(data=dat, aes(x=log(LBL), y=log(UBL))) +
+  geom_point(aes(color = pop),             
+             size = 3) + 
+  labs(color="Population") + 
+  labs(y="Upper bract length (log mm)", 
+       x="Lower bract length (log mm)") +
+  geom_smooth(method='lm', 
+              se=F, 
+              color = "black") +
+  theme_classic() +
+  theme(aspect.ratio=1,                             
+        text = element_text(size=14),                
+        legend.text = element_text(size=12)) 
+###################################################################################################
+
+#linear fit for all populations:
+y = dat$UBL
+x = dat$LBL
+reg = lm(y~x)
+cf = summary(reg)$coef
+predvals = cf[1,1] + cf[2,1]*x
+eq = paste0("y = ", round(cf[2,1],1), "*x ", "+ ", round(cf[1,1],1))
+par(mfrow=c(1,2))
+newx = seq(12.09, 28.15, length.out =length(x))
+predy = cf[1,1] + cf[2,1]*newx
+plot(x, y, las=1,
+     ylab="UBL data for all populations (mm)", xlab="LBL data for all populations (mm)", main=eq)
+lines(newx, predy, col="red", lwd = 2 )
+abline(a=2, b=1, col="blue", lwd = 2)
+segments(x, y, x, predvals)
+z = residuals(reg)
+plotNormalHistogram(z, prob = FALSE, col="black", border="green",
+                    main = "Normal Distribution Overlay on Residuals Histogram",
+                    linecol="red", lwd=3 )
+summary(reg)
+
+fitdistr(residuals(reg), "normal")
+
+###################################################################################################
+# then populations plot without log values
+
+ggplot(data=dat, aes(x=LBL, y=UBL)) +
+  geom_point(aes(color = pop),             
+             size = 3) + 
+  labs(color="Population") + 
+  labs(y="Upper bract length (mm)", 
+       x="Lower bract length (mm)") +
+  geom_smooth(method='lm', 
+              se=F, 
+              color = "black") +
+  theme_classic() +
+  theme(aspect.ratio=1,                             
+        text = element_text(size=14),                
+        legend.text = element_text(size=12)) 
+###################################################################################################
+anc = lm(y_new~x_new*populations)
+anova(anc)
+summary(anc)
+plot(y_new~x_new*populations)
+plot(anc)
+###################################################################################################
+# f we want to extract the populations slopes and
+# intercepts with their standard errors, we can reformulate the model by suppressing the global intercept.
+###################################################################################################
+anc2 = lm(y_new ~ -1 + populations + x_new:populations)
+summary(anc2)
+coef(anc2)
+
+mmm = glmmTMB(y_new ~ (x_new|populations), data=dat)
+
+coef(mmm)
+
+mmmm = glmmTMB(y_new ~ x_new + (x_new|populations), data=dat)
+
+coef(mmmm)
