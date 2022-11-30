@@ -149,11 +149,13 @@ par(oldpar)
 #
 ##################################################################################
 
-ubl = aov(UBL~populations, data = dat)
+ubl = aov(UBL~populations - 1, data = dat)
 anova(ubl)
 summary(ubl)
+summary(m)$coef
+coef(ubl)
 
-lbl = aov(LBL~populations, data = dat)
+lbl = aov(LBL~populations - 1, data = dat)
 anova(lbl)
 summary(lbl)
 par(mfrow=c(1,2))
