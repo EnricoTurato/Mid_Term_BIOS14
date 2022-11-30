@@ -175,10 +175,12 @@ plotNormalHistogram(dat$LBL, prob = FALSE, col="black", border="green",
 
 
 ##################################################################################
+
 populations = as.factor(dat$pop)
-y_UBL = dat$UBL
-x_LBL = dat$LBL
-m = glmmTMB(y_new ~ x_new + (1|populations), data=dat)
+y = dat$UBL
+x = dat$LBL
+mean_x = mean(x, na.rm = TRUE)
+m = glmmTMB(y ~ x + (1|populations), data=dat)
 
 summary(m)
 
@@ -186,14 +188,14 @@ VarCorr(m)
 VarAmongGroups = attr(VarCorr(m)$cond$populations, "stddev")^2
 VarWithinGroups = attr(VarCorr(m)$cond, "sc")^2
 VarAmongGroups/(VarAmongGroups+VarWithinGroups)*100
-CV2_Among = VarAmongGroups/mean(x_LBL)^2
-CV2_Within = VarWithinGroups/mean(x_LBL)^2
+CV2_Among = VarAmongGroups/mean_x^2
+CV2_Within = VarWithinGroups/mean_x^2
 CV2_Total = CV2_Among + CV2_Within
-df = data.frame(Mean = mean(x_LBL), SD = sd(x_LBL),
+df = data.frame(Mean = mean_x, SD = sd(x, na.rm = TRUE),
                 Among = VarAmongGroups/(VarAmongGroups+VarWithinGroups)*100,
                 Within = VarWithinGroups/(VarAmongGroups+VarWithinGroups)*100,
                 CV2_Among, CV2_Within, CV2_Total)
-df = apply(df, 2, round, 2)
+df = apply(df, MARGIN=2, FUN=round, digits=3)
 df
 coef(m)
 
@@ -243,7 +245,7 @@ abline(a=2, b=1, col="blue", lwd = 2)
 segments(x, y, x, predvals)
 z = residuals(reg)
 plotNormalHistogram(z, prob = FALSE, col="black", border="green",
-                    main = "Normal Distribution Overlay on Residuals Histogram",
+                    main = "Normal Distribution Overlay on Residuals Histogram", ,xlab = "Residuals values [mm]",
                     linecol="red", lwd=3 )
 summary(reg)
 
@@ -266,23 +268,23 @@ ggplot(data=dat, aes(x=LBL, y=UBL)) +
         text = element_text(size=14),                
         legend.text = element_text(size=12)) 
 ###################################################################################################
-anc = lm(y_new~x_new*populations)
+anc = lm(y~x*populations)
 anova(anc)
 summary(anc)
-plot(y_new~x_new*populations)
+plot(y~x*populations)
 plot(anc)
 ###################################################################################################
 # f we want to extract the populations slopes and
 # intercepts with their standard errors, we can reformulate the model by suppressing the global intercept.
 ###################################################################################################
-anc2 = lm(y_new ~ -1 + populations + x_new:populations)
+anc2 = lm(y ~ -1 + populations + x:populations)
 summary(anc2)
 coef(anc2)
 
-mmm = glmmTMB(y_new ~ (x_new|populations), data=dat)
+#######################################################################
+# getting slopes from mixed models approach
+#######################################################################
 
-coef(mmm)
-
-mmmm = glmmTMB(y_new ~ x_new +(x_new|populations), data=dat)
+mmmm = glmmTMB(y ~ x +(x|populations), data=dat)
 
 coef(mmmm)
