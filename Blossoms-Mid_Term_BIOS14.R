@@ -278,6 +278,7 @@ plot(anc)
 # intercepts with their standard errors, we can reformulate the model by suppressing the global intercept.
 ###################################################################################################
 anc2 = lm(y ~ -1 + populations + x:populations)
+anova(anc2)
 summary(anc2)
 coef(anc2)
 
