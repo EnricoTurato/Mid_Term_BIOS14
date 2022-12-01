@@ -41,14 +41,12 @@ kable(popstats2)
 #################################################################################
 # After exploring and summarizing the data, fit some linear models to estimate 
 # the slopes of one trait on
-# another. Interpret the results. Do the analysis on both arithmetic 
-# and log scale. Choose traits that belong
-# to the same vs. different functional groups, can you detect any patterns?
+# another. Interpret the results. 
 ##################################################################################
 
 # do regression on UBL and LBL for population S1
 # notice slope slightly smaller than 1
-# so usually lowr is bigger in a Plant
+# so usually lowerr is bigger in a Plant
 # then check through ancova how the various populations vary
 oldpar = par(no.readonly = TRUE)
 
@@ -149,13 +147,15 @@ par(oldpar)
 #
 ##################################################################################
 
-ubl = aov(UBL~populations - 1, data = dat)
+ubl = aov(UBL~populations, data = dat)
+ubl2 = aov(UBL~populations - 1, data = dat)
 anova(ubl)
 summary(ubl)
 summary(m)$coef
 coef(ubl)
 
-lbl = aov(LBL~populations - 1, data = dat)
+lbl = aov(LBL~populations, data = dat)
+lbl2 = aov(LBL~populations - 1, data = dat)
 anova(lbl)
 summary(lbl)
 par(mfrow=c(1,2))
@@ -204,16 +204,9 @@ coef(m)
 #################################################################################
 #################################################################################
 
-#################################################################################
-#################################################################################
-#
-# I can try to do ANCOVA
-#
-#################################################################################
-#################################################################################
 
 ###################################################################################################
-# first populations plot for log values
+# populations plot for log values
 
 ggplot(data=dat, aes(x=log(LBL), y=log(UBL))) +
   geom_point(aes(color = pop),             
@@ -236,7 +229,7 @@ x = dat$LBL
 reg = lm(y~x)
 cf = summary(reg)$coef
 predvals = cf[1,1] + cf[2,1]*x
-eq = paste0("y = ", round(cf[2,1],1), "*x ", "+ ", round(cf[1,1],1))
+eq = paste0("y = ", round(cf[2,1],1), "*x ", "+ ", round(cf[1,1],1), "mm")
 par(mfrow=c(1,2))
 newx = seq(12.09, 28.15, length.out =length(x))
 predy = cf[1,1] + cf[2,1]*newx
@@ -270,13 +263,23 @@ ggplot(data=dat, aes(x=LBL, y=UBL)) +
         text = element_text(size=14),                
         legend.text = element_text(size=12)) 
 ###################################################################################################
+
+#################################################################################
+#################################################################################
+#
+# I can try to do ANCOVA
+#
+#################################################################################
+#################################################################################
+
+
 anc = lm(y~x*populations)
 anova(anc)
 summary(anc)
 plot(y~x*populations)
 plot(anc)
 ###################################################################################################
-# f we want to extract the populations slopes and
+# if we want to extract the populations slopes and
 # intercepts with their standard errors, we can reformulate the model by suppressing the global intercept.
 ###################################################################################################
 anc2 = lm(y ~ -1 + populations + x:populations)
@@ -285,7 +288,8 @@ summary(anc2)
 coef(anc2)
 
 #######################################################################
-# getting slopes from mixed models approach
+# getting slopes from mixed models approach (BLUPS) just to see the
+# difference with ANCOVA
 #######################################################################
 
 mmmm = glmmTMB(y ~ x +(x|populations), data=dat)
